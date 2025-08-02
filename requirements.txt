@@ -1,0 +1,13 @@
+# Requirements for Ollama Remote Chat Clients
+# Install with: pip install -r requirements.txt
+
+requests>=2.25.0
+# Used for HTTP API calls to Ollama server
+
+# Optional (for advanced features):
+# httpx>=0.24.0
+# For async operations (not currently used but available)
+
+# Note: No other dependencies required!
+# The remote chat clients are designed to be lightweight
+# and work with minimal Python installations.
