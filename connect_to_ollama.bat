@@ -324,40 +324,40 @@ echo import requests
 echo import json
 echo import sys
 echo.
-echo def chat_with_ollama^(server_ip, model="tinyllama"^):
+echo def chat_with_ollama(server_ip, model="tinyllama"^):
 echo     base_url = f"http://{server_ip}:11434"
 echo     try:
 echo         # Test connection
-echo         response = requests.get^(f"{base_url}/api/tags", timeout=5^)
+echo         response = requests.get(f"{base_url}/api/tags", timeout=5^)
 echo         if response.status_code != 200:
-echo             print^("❌ Could not connect to Ollama server"^)
+echo             print("❌ Could not connect to Ollama server"^)
 echo             return
 echo.
 echo         # Get available models
-echo         models = response.json^(^).get^("models", []^)
+echo         models = response.json(^).get("models", []^)
 echo         if models:
-echo             print^(f"📚 Available models: {', '.join^([m['name'] for m in models]^)}"^)
+echo             print(f"📚 Available models: {', '.join([m['name'] for m in models]^)}"^)
 echo             if model not in [m['name'] for m in models]:
 echo                 model = models[0]['name']
-echo                 print^(f"🔄 Using model: {model}"^)
+echo                 print(f"🔄 Using model: {model}"^)
 echo         else:
-echo             print^("❌ No models found on server"^)
+echo             print("❌ No models found on server"^)
 echo             return
 echo.
-echo         print^(f"🤖 Chat started with {model} on {server_ip}"^)
-echo         print^("💬 You can start typing your messages:"^)
-echo         print^(^)
+echo         print(f"🤖 Chat started with {model} on {server_ip}"^)
+echo         print("💬 You can start typing your messages:"^)
+echo         print(^)
 echo.
 echo         while True:
 echo             try:
-echo                 user_input = input^("You: "^)
-echo                 if user_input.lower^(^) in ['quit', 'exit', 'bye']:
-echo                     print^("👋 Goodbye!"^)
+echo                 user_input = input("You: "^)
+echo                 if user_input.lower(^) in ['quit', 'exit', 'bye']:
+echo                     print("👋 Goodbye!"^)
 echo                     break
-echo                 elif user_input.lower^(^) == 'models':
-echo                     print^(f"📚 Available models: {', '.join^([m['name'] for m in models]^)}"^)
+echo                 elif user_input.lower(^) == 'models':
+echo                     print(f"📚 Available models: {', '.join([m['name'] for m in models]^)}"^)
 echo                     continue
-echo                 elif user_input.strip^(^) == '':
+echo                 elif user_input.strip(^) == '':
 echo                     continue
 echo.
 echo                 # Send chat request
@@ -367,28 +367,28 @@ echo                     "prompt": user_input,
 echo                     "stream": False
 echo                 }
 echo.
-echo                 print^("🤖 AI: ", end="", flush=True^)
-echo                 response = requests.post^(f"{base_url}/api/generate", json=data, timeout=60^)
+echo                 print("🤖 AI: ", end="", flush=True^)
+echo                 response = requests.post(f"{base_url}/api/generate", json=data, timeout=60^)
 echo                 
 echo                 if response.status_code == 200:
-echo                     result = response.json^(^)
-echo                     print^(result.get^("response", "No response"^)^)
+echo                     result = response.json(^)
+echo                     print(result.get("response", "No response"^)^)
 echo                 else:
-echo                     print^(f"❌ Error: {response.status_code}"^)
-echo                 print^(^)
+echo                     print(f"❌ Error: {response.status_code}"^)
+echo                 print(^)
 echo.
 echo             except KeyboardInterrupt:
-echo                 print^("\n👋 Chat ended by user"^)
+echo                 print("\n👋 Chat ended by user"^)
 echo                 break
 echo             except Exception as e:
-echo                 print^(f"\n❌ Error: {e}"^)
+echo                 print(f"\n❌ Error: {e}"^)
 echo                 break
 echo.
 echo     except Exception as e:
-echo         print^(f"❌ Connection error: {e}"^)
+echo         print(f"❌ Connection error: {e}"^)
 echo.
 echo if __name__ == "__main__":
-echo     chat_with_ollama^("!SERVER_IP!"^)
+echo     chat_with_ollama("!SERVER_IP!"^)
 ) > temp_chat.py
 
 :: Run Python chat
