@@ -1,0 +1,76 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Setup Ollama Network Access",
+			"type": "shell",
+			"command": "C:/school/LLMlocal/.venv/Scripts/python.exe",
+			"args": [
+				"setup.py"
+			],
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start Proxy Server",
+			"type": "shell",
+			"command": "C:/school/LLMlocal/.venv/Scripts/python.exe",
+			"args": [
+				"proxy_server.py"
+			],
+			"group": "test",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run CLI Client",
+			"type": "shell",
+			"command": "C:/school/LLMlocal/.venv/Scripts/python.exe",
+			"args": [
+				"cli_client.py",
+				"--host",
+				"localhost",
+				"--model",
+				"tinyllama"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Test API Client",
+			"type": "shell",
+			"command": "C:/school/LLMlocal/.venv/Scripts/python.exe",
+			"args": [
+				"api_client.py"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Set Ollama Network Mode",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$env:OLLAMA_HOST = '0.0.0.0:11434'; echo 'Set OLLAMA_HOST=0.0.0.0:11434'"
+			],
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start Ollama Server",
+			"type": "shell",
+			"command": "ollama",
+			"args": [
+				"serve"
+			],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
