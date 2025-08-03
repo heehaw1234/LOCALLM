@@ -20,7 +20,7 @@ This folder contains all the files needed to connect to your Ollama server from 
 
 ## 📁 **What's Included**
 
-### **🎯 Main File (ALL YOU NEED):**
+### **🎯 Main File (ONLY ONE YOU NEED):**
 
 #### **`connect_to_ollama.bat`** ⭐ **ONE-CLICK SOLUTION**
 - **Complete setup and chat in one file**
@@ -30,68 +30,35 @@ This folder contains all the files needed to connect to your Ollama server from 
 - Advanced Python chat OR simple batch chat
 - **This is the ONLY file you need to run!**
 
-### **🔧 Optional Advanced Files:**
+### **� Optional Files (Advanced Users Only):**
 
-#### **`remote_chat_service.bat`** ⭐ **RECOMMENDED**
-- **Complete chat service launcher**
-- Auto-discovers Ollama server IP addresses
-- Creates persistent chat service in separate window
-- Handles IP changes automatically
-- Saves connection info for next time
-- **No Python required** - works on any Windows system
-
-#### **`python_setup.bat`** 🐍 **PYTHON INSTALLER**
-- **Auto-installs Python environment** for devices without Python
-- Downloads portable Python (no admin rights needed)
-- Sets up virtual environment with required packages
-- Creates easy launcher scripts
-- **Perfect for devices that don't have Python**
-
-#### **`quick_python_chat.bat`** 🚀 **EASY PYTHON LAUNCHER**
-- **One-click Python chat client**
-- Auto-detects Python environment (venv, portable, or system)
-- Auto-installs missing packages
-- Best experience with advanced features
-
-#### **`scan_servers.bat`** 🔍 **SERVER DISCOVERY**
-- **Quick server scanner**
-- Finds all Ollama servers on network
-- Uses Python for advanced network detection
-- Perfect for troubleshooting connections
-
-#### **`smart_remote_client.py`** ⭐ **ADVANCED**
-- Python-based smart client with full auto-discovery
-- Cross-platform (Windows/Mac/Linux)
+#### **`smart_remote_client.py`** � **ADVANCED PYTHON CLIENT**
+- Cross-platform Python client (Windows/Mac/Linux)
 - Advanced network scanning and IP memory
 - Interactive chat with streaming responses
+- **Only use if you prefer running Python directly**
 
-#### **`remote_chat_client.py`**
-- Basic Python client with auto-discovery
-- Good for scripting and automation
+#### **`remote_chat_client.py`** 🔧 **BASIC PYTHON CLIENT**
+- Simple Python client for scripting and automation
 - Command-line interface
+- **Good for developers and automation**
 
-#### **`remote_chat.bat`**
-- Simple Windows batch file
-- Direct chat interface
-- Auto IP discovery built-in
-
-#### **`ollama_connection.conf`**
+#### **`ollama_connection.conf`** ⚙️ **CONFIGURATION**
 - Configuration file for connection settings
 - Edit to force specific IP addresses
 - Stores common IPs to try
 
-### **🔧 Auto-Generated Files:**
+### **🔧 Auto-Generated Files (Created When Needed):**
 - `connection_info.ini` - Connection details
 - `remote_connection.txt` - Last successful IP
-- `chat_service.bat` - Generated chat service script
+- `temp_chat.py` - Generated Python chat script
 - `temp_*.json` - Temporary API files
 - `venv/` - Python virtual environment (if created)
 - `portable_python/` - Portable Python installation (if downloaded)
-- `python_launcher.bat` - Smart Python environment detector
 
 ## 🎮 **Usage Options**
 
-### **🌟 Recommended: One-Click Everything**
+### **🌟 Recommended: One-Click Everything (99% of Users)**
 ```batch
 # Just double-click this file:
 connect_to_ollama.bat
@@ -103,50 +70,27 @@ connect_to_ollama.bat
 # - Chat interface
 ```
 
-### **📋 Alternative Options (Advanced Users):**
+### **📋 Advanced Options (For Developers Only):**
 
-### **Option 1: Service Mode (Best for Regular Use)**
-```batch
-# Double-click this file:
-remote_chat_service.bat
-
-# Choose: 1. Setup and start chat service
-# A separate chat window opens and stays active
-# You can minimize the setup window and keep chatting
-```
-
-### **Option 2: Python Client (Advanced)**
+### **Option 1: Direct Python Client (Advanced)**
 ```bash
-# Easy one-click Python launcher:
-quick_python_chat.bat
-
-# Auto-discover and chat (if Python installed):
+# If you prefer Python directly:
 python smart_remote_client.py
 
 # Scan for all servers:
-scan_servers.bat
-# OR: python smart_remote_client.py --scan
+python smart_remote_client.py --scan
 
 # Single question:
 python smart_remote_client.py --prompt "Hello AI"
+
+# Use specific model:
+python smart_remote_client.py --model llama3.2:latest
 ```
 
-### **Option 3: Python Setup (For Devices Without Python)**
-```batch
-# Auto-install Python environment:
-python_setup.bat
-
-# Then use any Python features:
-quick_python_chat.bat
-scan_servers.bat
-```
-
-### **Option 4: Direct Batch Chat**
-```batch
-# Double-click:
-remote_chat.bat
-
-# Chat directly in the same window
+### **Option 2: Basic Python Client (Scripting)**
+```bash
+# For automation and scripting:
+python remote_chat_client.py
 ```
 
 ## 🔍 **How Auto-Discovery Works**
@@ -211,23 +155,22 @@ COMMON_IPS=localhost 192.168.1.115 192.168.1.100 10.0.0.50
 ### **Can't Find Server?**
 - Make sure the Ollama server is running with network access
 - Check the server's `quick_start.bat` output for correct IP
-- Try running discovery mode: `remote_chat_service.bat` → option 3
+- Run `connect_to_ollama.bat` again - it will re-scan automatically
 - Manually set IP in `ollama_connection.conf`
 
 ### **Connection Drops?**
 - Server IP may have changed (DHCP)
-- Run the service again - it will auto-discover new IP
+- Run `connect_to_ollama.bat` again - it will auto-discover new IP
 - Check server is still running with `quick_start.bat`
 
 ### **Want Different Model?**
-- Edit the `DEFAULT_MODEL` in any of the batch files
+- When `connect_to_ollama.bat` starts chat, type `models` to see available options
 - Or use Python client: `python smart_remote_client.py --model llama3.2:latest`
-- Or use quick launcher: `quick_python_chat.bat` then type model name when prompted
 
-### **Need Python Environment?**
-- Run `python_setup.bat` - it will download and configure everything automatically
-- No admin rights needed - uses portable Python
-- Creates virtual environment with all required packages
+### **Need to Troubleshoot?**
+- `connect_to_ollama.bat` handles all Python setup automatically
+- No manual Python installation needed
+- All packages downloaded and configured automatically
 - Works on any Windows system, even without existing Python
 
 ## 🎉 **Features**
@@ -251,11 +194,10 @@ COMMON_IPS=localhost 192.168.1.115 192.168.1.100 10.0.0.50
 # ⭐ ONE-CLICK EVERYTHING (RECOMMENDED)
 connect_to_ollama.bat
 
-# Alternative advanced options:
-remote_chat_service.bat    # Service mode
-quick_python_chat.bat      # Python launcher  
-python_setup.bat          # Manual Python setup
-scan_servers.bat          # Server discovery only
+# Advanced Python options (for developers):
+python smart_remote_client.py        # Interactive chat
+python smart_remote_client.py --scan # Find servers
+python remote_chat_client.py         # Basic client
 ```
 
 **🎉 Just run `connect_to_ollama.bat` and you're chatting with AI in under 5 minutes! 🤖💬**

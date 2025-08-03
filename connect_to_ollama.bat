@@ -80,6 +80,7 @@ echo 📦 Checking for required packages...
 if errorlevel 1 (
     echo ❌ Required packages missing (requests)
     set "SETUP_NEEDED=1"
+    goto :install_packages
 ) else (
     echo ✅ All required packages found
     goto :server_discovery
@@ -168,15 +169,46 @@ goto :install_packages
 :install_packages
 echo.
 echo 📦 Installing required packages...
+
+:: Try pip install with current Python command
+echo Trying: %PYTHON_CMD% -m pip install requests
 %PYTHON_CMD% -m pip install requests --quiet --disable-pip-version-check 2>nul
-if errorlevel 1 (
-    echo ❌ Failed to install packages
-    echo Falling back to batch mode...
-    goto :batch_mode
-) else (
+if not errorlevel 1 (
     echo ✅ Packages installed successfully
     goto :server_discovery
 )
+
+:: Try pip3 if pip failed
+echo Trying: %PYTHON_CMD% -m pip3 install requests
+%PYTHON_CMD% -m pip3 install requests --quiet --disable-pip-version-check 2>nul
+if not errorlevel 1 (
+    echo ✅ Packages installed successfully
+    goto :server_discovery
+)
+
+:: Try direct pip command
+echo Trying: pip install requests
+pip install requests --quiet --disable-pip-version-check 2>nul
+if not errorlevel 1 (
+    echo ✅ Packages installed successfully
+    goto :server_discovery
+)
+
+:: Try pip3 command
+echo Trying: pip3 install requests
+pip3 install requests --quiet --disable-pip-version-check 2>nul
+if not errorlevel 1 (
+    echo ✅ Packages installed successfully
+    goto :server_discovery
+)
+
+:: All pip methods failed
+echo ❌ Failed to install packages with all methods
+echo ⚠️  Python found but package installation failed
+echo 💡 You may need to install packages manually: pip install requests
+echo 💡 Or run: python -m pip install requests
+echo Falling back to batch mode...
+goto :batch_mode
 
 :batch_mode
 echo.
@@ -298,6 +330,77 @@ echo ================================================================
 echo !SERVER_IP!>remote_connection.txt
 echo ✅ Connection info saved for next time
 
+:: Get available models and detect which one is currently loaded/running
+echo 🔍 Detecting active model on server...
+set "SELECTED_MODEL="
+set "MODEL_STATUS="
+
+:: Try to get running processes/models first
+curl -s --connect-timeout 5 "http://!SERVER_IP!:!SERVER_PORT!/api/ps" > temp_running.json 2>nul
+if exist temp_running.json (
+    echo 📊 Checking for currently loaded models...
+    
+    :: Parse running models from JSON using PowerShell
+    for /f "usebackq delims=" %%i in (`powershell -Command "try { $json = Get-Content 'temp_running.json' | ConvertFrom-Json; if ($json.models -and $json.models.Count -gt 0) { $json.models[0].name } else { '' } } catch { '' }"`) do (
+        if not "%%i"=="" (
+            set "SELECTED_MODEL=%%i"
+            set "MODEL_STATUS=ACTIVE"
+            echo ✅ Found active model in memory: %%i
+            goto model_detected
+        )
+    )
+    del temp_running.json 2>nul
+)
+
+:model_detected
+:: If no running model found, get first available model
+if not defined SELECTED_MODEL (
+    echo 📋 No model currently loaded in memory, checking available models...
+    curl -s --connect-timeout 5 "http://!SERVER_IP!:!SERVER_PORT!/api/tags" > temp_models.json 2>nul
+    if exist temp_models.json (
+        echo 🔍 Getting first available model...
+        
+        :: Parse models from JSON using PowerShell and get the first one
+        for /f "usebackq delims=" %%i in (`powershell -Command "try { $json = Get-Content 'temp_models.json' | ConvertFrom-Json; if ($json.models -and $json.models.Count -gt 0) { $json.models[0].name } else { '' } } catch { '' }"`) do (
+            if not "%%i"=="" (
+                set "SELECTED_MODEL=%%i"
+                set "MODEL_STATUS=AVAILABLE"
+                echo ✅ Using first available model: %%i
+                goto model_found
+            )
+        )
+        del temp_models.json 2>nul
+    )
+)
+
+:model_found
+:: Ensure we have a valid model name
+if "!SELECTED_MODEL!"=="" (
+    set "SELECTED_MODEL=tinyllama:latest"
+    set "MODEL_STATUS=FALLBACK"
+    echo 🔧 No models detected, using fallback: !SELECTED_MODEL!
+    goto model_status_done
+)
+
+:: Display status based on MODEL_STATUS
+if "!MODEL_STATUS!"=="ACTIVE" (
+    echo ✅ Auto-selected model: !SELECTED_MODEL! (currently loaded in memory)
+    goto model_status_done
+)
+if "!MODEL_STATUS!"=="AVAILABLE" (
+    echo ✅ Auto-selected model: !SELECTED_MODEL! (will be loaded on first use)
+    goto model_status_done
+)
+echo ✅ Auto-selected model: !SELECTED_MODEL!
+
+:model_status_done
+
+echo.
+echo 💡 NOTE: The system detected the ACTUAL model currently active on the server.
+echo 💡 If this is not the model you expected, check the server's quickstart menu.
+
+echo.
+
 :: Choose chat method based on available Python
 if defined PYTHON_CMD (
     echo 🐍 Starting Python chat client...
@@ -313,87 +416,36 @@ echo ================================================================
 echo 🤖 PYTHON CHAT MODE - Advanced Features Available
 echo ================================================================
 echo Connected to: !SERVER_IP!:!SERVER_PORT!
+
+:: Display model status
+if "!MODEL_STATUS!"=="ACTIVE" (
+    echo Model: !SELECTED_MODEL! (currently loaded in memory)
+    goto python_chat_continue
+)
+if "!MODEL_STATUS!"=="AVAILABLE" (
+    echo Model: !SELECTED_MODEL! (will be loaded on first use)
+    goto python_chat_continue
+)
+echo Model: !SELECTED_MODEL!
+
+:python_chat_continue
 echo Type 'quit' or 'exit' to end the chat
-echo Type 'models' to see available models
+echo Type 'models' to see all available models
 echo ================================================================
 echo.
 
-:: Create temporary Python chat script
-(
-echo import requests
-echo import json
-echo import sys
-echo.
-echo def chat_with_ollama(server_ip, model="tinyllama"^):
-echo     base_url = f"http://{server_ip}:11434"
-echo     try:
-echo         # Test connection
-echo         response = requests.get(f"{base_url}/api/tags", timeout=5^)
-echo         if response.status_code != 200:
-echo             print("❌ Could not connect to Ollama server"^)
-echo             return
-echo.
-echo         # Get available models
-echo         models = response.json(^).get("models", []^)
-echo         if models:
-echo             print(f"📚 Available models: {', '.join([m['name'] for m in models]^)}"^)
-echo             if model not in [m['name'] for m in models]:
-echo                 model = models[0]['name']
-echo                 print(f"🔄 Using model: {model}"^)
-echo         else:
-echo             print("❌ No models found on server"^)
-echo             return
-echo.
-echo         print(f"🤖 Chat started with {model} on {server_ip}"^)
-echo         print("💬 You can start typing your messages:"^)
-echo         print(^)
-echo.
-echo         while True:
-echo             try:
-echo                 user_input = input("You: "^)
-echo                 if user_input.lower(^) in ['quit', 'exit', 'bye']:
-echo                     print("👋 Goodbye!"^)
-echo                     break
-echo                 elif user_input.lower(^) == 'models':
-echo                     print(f"📚 Available models: {', '.join([m['name'] for m in models]^)}"^)
-echo                     continue
-echo                 elif user_input.strip(^) == '':
-echo                     continue
-echo.
-echo                 # Send chat request
-echo                 data = {
-echo                     "model": model,
-echo                     "prompt": user_input,
-echo                     "stream": False
-echo                 }
-echo.
-echo                 print("🤖 AI: ", end="", flush=True^)
-echo                 response = requests.post(f"{base_url}/api/generate", json=data, timeout=60^)
-echo                 
-echo                 if response.status_code == 200:
-echo                     result = response.json(^)
-echo                     print(result.get("response", "No response"^)^)
-echo                 else:
-echo                     print(f"❌ Error: {response.status_code}"^)
-echo                 print(^)
-echo.
-echo             except KeyboardInterrupt:
-echo                 print("\n👋 Chat ended by user"^)
-echo                 break
-echo             except Exception as e:
-echo                 print(f"\n❌ Error: {e}"^)
-echo                 break
-echo.
-echo     except Exception as e:
-echo         print(f"❌ Connection error: {e}"^)
-echo.
-echo if __name__ == "__main__":
-echo     chat_with_ollama("!SERVER_IP!"^)
-) > temp_chat.py
+:: Use existing Python client instead of generating temp file
+if exist "smart_remote_client.py" (
+    echo Starting smart remote client with auto-detected model: !SELECTED_MODEL!...
+    %PYTHON_CMD% smart_remote_client.py --host !SERVER_IP! --model !SELECTED_MODEL!
+) else if exist "remote_chat_client.py" (
+    echo Starting remote chat client with auto-detected model: !SELECTED_MODEL!...
+    %PYTHON_CMD% remote_chat_client.py --host !SERVER_IP! --model !SELECTED_MODEL!
+) else (
+    echo No Python client found, using fallback batch mode...
+    goto :batch_chat
+)
 
-:: Run Python chat
-%PYTHON_CMD% temp_chat.py
-del temp_chat.py 2>nul
 goto :end_session
 
 :batch_chat
@@ -402,20 +454,37 @@ echo ================================================================
 echo 🤖 BATCH CHAT MODE - Basic Chat Available
 echo ================================================================
 echo Connected to: !SERVER_IP!:!SERVER_PORT!
+
+:: Display model status
+if "!MODEL_STATUS!"=="ACTIVE" (
+    echo Model: !SELECTED_MODEL! (currently loaded in memory)
+    goto batch_chat_continue
+)
+if "!MODEL_STATUS!"=="AVAILABLE" (
+    echo Model: !SELECTED_MODEL! (will be loaded on first use)
+    goto batch_chat_continue
+)
+echo Model: !SELECTED_MODEL!
+
+:batch_chat_continue
 echo Type 'quit' to end the chat
+echo Type 'models' to see all available models
+echo Type 'refresh' to re-detect active model
 echo ================================================================
 echo.
 
 :batch_chat_loop
 set /p "user_input=You: "
 if /i "!user_input!"=="quit" goto :end_session
+if /i "!user_input!"=="models" goto :show_models_batch
+if /i "!user_input!"=="refresh" goto :refresh_model_batch
 if "!user_input!"=="" goto :batch_chat_loop
 
-:: Create temporary request file
-echo {"model":"tinyllama","prompt":"!user_input!","stream":false} > temp_request.json
+:: Create temporary request file with auto-detected model
+echo {"model":"!SELECTED_MODEL!","prompt":"!user_input!","stream":false} > temp_request.json
 
 :: Send request and get response
-echo 🤖 AI: 
+echo 🤖 AI (!SELECTED_MODEL!): 
 curl -s -X POST "http://!SERVER_IP!:!SERVER_PORT!/api/generate" -H "Content-Type: application/json" -d @temp_request.json 2>nul | findstr /C:"response" | for /f "tokens=2 delims=:" %%a in ('more') do (
     set "response=%%a"
     set "response=!response:~1,-1!"
@@ -424,6 +493,86 @@ curl -s -X POST "http://!SERVER_IP!:!SERVER_PORT!/api/generate" -H "Content-Type
 )
 
 del temp_request.json 2>nul
+echo.
+goto :batch_chat_loop
+
+:show_models_batch
+echo.
+echo 📋 Available models on server:
+curl -s --connect-timeout 5 "http://!SERVER_IP!:!SERVER_PORT!/api/tags" > temp_models.json 2>nul
+if exist temp_models.json (
+    set "model_count=0"
+    for /f "usebackq delims=" %%i in (`powershell -Command "try { $json = Get-Content 'temp_models.json' | ConvertFrom-Json; $json.models | ForEach-Object { $_.name } } catch { }"`) do (
+        set /a model_count+=1
+        set "model_!model_count!=%%i"
+        if "%%i"=="!SELECTED_MODEL!" (
+            echo   !model_count!. %%i (CURRENTLY ACTIVE)
+        ) else (
+            echo   !model_count!. %%i
+        )
+    )
+    
+    echo.
+    echo ✅ Currently using: !SELECTED_MODEL! (auto-detected)
+    echo 💡 The system automatically uses the active model on the server
+    echo 💡 Type 'refresh' to re-detect the active model
+    
+    del temp_models.json 2>nul
+) else (
+    echo ❌ Could not get models list
+)
+echo.
+goto :batch_chat_loop
+
+:refresh_model_batch
+echo.
+echo 🔄 Re-detecting active model on server...
+
+:: Re-run the model detection logic
+set "OLD_MODEL=!SELECTED_MODEL!"
+set "SELECTED_MODEL="
+
+:: Try to get running processes/models first
+curl -s --connect-timeout 5 "http://!SERVER_IP!:!SERVER_PORT!/api/ps" > temp_running.json 2>nul
+if exist temp_running.json (
+    for /f "usebackq delims=" %%i in (`powershell -Command "try { $json = Get-Content 'temp_running.json' | ConvertFrom-Json; if ($json.models -and $json.models.Count -gt 0) { $json.models[0].name } else { '' } } catch { '' }"`) do (
+        if not "%%i"=="" (
+            set "SELECTED_MODEL=%%i"
+            if "!SELECTED_MODEL!"=="!OLD_MODEL!" (
+                echo ✅ Model unchanged: !SELECTED_MODEL!
+            ) else (
+                echo ✅ Model changed from !OLD_MODEL! to !SELECTED_MODEL!
+            )
+            goto refresh_done
+        )
+    )
+    del temp_running.json 2>nul
+)
+
+:: If no running model found, get first available model
+if not defined SELECTED_MODEL (
+    curl -s --connect-timeout 5 "http://!SERVER_IP!:!SERVER_PORT!/api/tags" > temp_models.json 2>nul
+    if exist temp_models.json (
+        for /f "usebackq delims=" %%i in (`powershell -Command "try { $json = Get-Content 'temp_models.json' | ConvertFrom-Json; if ($json.models -and $json.models.Count -gt 0) { $json.models[0].name } else { '' } } catch { '' }"`) do (
+            if not "%%i"=="" (
+                set "SELECTED_MODEL=%%i"
+                if "!SELECTED_MODEL!"=="!OLD_MODEL!" (
+                    echo ✅ Model unchanged: !SELECTED_MODEL!
+                ) else (
+                    echo ✅ Model changed from !OLD_MODEL! to !SELECTED_MODEL!
+                )
+                goto refresh_done
+            )
+        )
+        del temp_models.json 2>nul
+    )
+)
+
+:refresh_done
+if "!SELECTED_MODEL!"=="" (
+    set "SELECTED_MODEL=!OLD_MODEL!"
+    echo ⚠️  Could not detect model, keeping: !SELECTED_MODEL!
+)
 echo.
 goto :batch_chat_loop
 
