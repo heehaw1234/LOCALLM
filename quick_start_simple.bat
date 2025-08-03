@@ -302,73 +302,43 @@ echo.
 echo 📋 REMOTE SETUP INSTRUCTIONS:
 echo ===============================
 echo.
-echo 🤖 Currently serving !model_count! models:
-if !model_count! gtr 0 (
-    for /L %%i in (1,1,!model_count!) do (
-        call echo    ✅ %%model%%i%%
-    )
-) 
-if !model_count! equ 0 (
-    echo    ❌ No models available - install models first!
-)
-echo.
 
-if "!LOCAL_IP!"=="localhost" goto no_network_ip
-
-echo 1. 📱 Share this server IP with other devices: !LOCAL_IP!
-echo.
-echo 2. 🔗 On other devices, they can access:
-echo    • Web Interface: http://!LOCAL_IP!:8000/web
-echo    • Direct API: http://!LOCAL_IP!:11434
-echo.
-echo 3. 📂 For Windows devices, copy and run:
-echo    • remote_device_files\connect_to_ollama.bat
-echo.
-echo 4. 🧪 Test connection from other devices:
-echo    • Open browser: http://!LOCAL_IP!:11434/api/tags
-echo    • Should show list of available models
-echo.
-echo 💡 Available models for remote access:
-for /L %%i in (1,1,!model_count!) do (
-    call echo    %%i. %%model%%i%%
-)
-echo.
-echo ⚠️  IMPORTANT: Do not pre-load models on the server!
-echo    Remote devices will select and load their preferred model automatically.
-echo    This prevents conflicts between different model choices.
-echo.
-
-:no_network_ip
-echo ❌ Network IP not detected!
-echo    Make sure you're connected to Wi-Fi or Ethernet
-echo    Only local access available: http://localhost:11434
-echo.
-
-:skip_model_loading
-
-echo.
-echo ✅ Server is ready for remote connections!
-echo � Remote devices should use: remote_device_files\connect_to_ollama.bat
-echo 💡 Available models (remote devices will choose):
-if !model_count! gtr 0 (
-    for /L %%i in (1,1,!model_count!) do (
-        call echo    • %%model%%i%%
-    )
-) else (
-    echo    ⚠️  No models currently available - install models first
-)
-echo.
-echo 🌐 Connection Info for Remote Devices:
 if not "!LOCAL_IP!"=="localhost" (
-    echo    Server IP: !LOCAL_IP!
-    echo    Web Interface: http://!LOCAL_IP!:8000/web
-    echo    Direct API: http://!LOCAL_IP!:11434
+    echo 1. 📱 Share this server IP with other devices: !LOCAL_IP!
+    echo.
+    echo 2. 🔗 On other devices, they can access:
+    echo    • Web Interface: http://!LOCAL_IP!:8000/web
+    echo    • Direct API: http://!LOCAL_IP!:11434
+    echo.
+    echo 3. 📂 For Windows devices, copy and run:
+    echo    • remote_device_files\connect_to_ollama.bat
+    echo.
+    echo 4. 🧪 Test connection from other devices:
+    echo    • Open browser: http://!LOCAL_IP!:11434/api/tags
+    echo    • Should show list of available models
+    echo.
+    echo 💡 To run connect_to_ollama.bat on this device for testing:
+    echo    cd remote_device_files
+    echo    connect_to_ollama.bat
+    echo.
+    set /p run_connect="Run connect_to_ollama.bat now for testing? (y/n): "
+    if /i "!run_connect!"=="y" (
+        echo.
+        echo 🚀 Starting connect_to_ollama.bat...
+        cd remote_device_files
+        call connect_to_ollama.bat
+        cd ..
+    )
 ) else (
-    echo    ⚠️  Network access not available
+    echo ❌ Network IP not detected!
+    echo    Make sure you're connected to Wi-Fi or Ethernet
+    echo    Only local access available: http://localhost:11434
+    echo.
 )
+
 echo.
-echo 💡 The server is now running without any pre-loaded models.
-echo 💡 Remote clients will automatically load their chosen model when connecting.
+echo 💡 The server is running and ready for remote connections!
+echo 💡 Remote devices will automatically detect available models.
 echo.
 pause
 goto main_menu
@@ -376,78 +346,31 @@ goto main_menu
 :cleanup
 echo.
 echo ================================================================
-echo 🛑 SHUTTING DOWN ALL SERVICES
+echo 🛑 SHUTTING DOWN OLLAMA SERVER
 echo ================================================================
 echo.
 
 echo 🔄 Stopping all services...
 
-REM Method 1: Kill Ollama by process name (all variants)
 echo Stopping Ollama server...
 taskkill /f /im ollama.exe >nul 2>&1
-taskkill /f /im "ollama app.exe" >nul 2>&1
-taskkill /f /im ollama_app.exe >nul 2>&1
-taskkill /f /im ollama-app.exe >nul 2>&1
-
-REM Method 2: Kill all processes using port 11434 (Ollama)
-echo Killing processes on port 11434...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":11434" 2^>nul') do (
-    if not "%%a"=="0" (
-        taskkill /f /pid %%a >nul 2>&1
-    )
+if !errorlevel!==0 (
+    echo ✅ Ollama server stopped
+) else (
+    echo ⚠️  Ollama server was not running
 )
 
-REM Method 3: Kill all processes using port 8000 (Proxy)
-echo Killing processes on port 8000...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8000" 2^>nul') do (
-    if not "%%a"=="0" (
-        taskkill /f /pid %%a >nul 2>&1
-    )
-)
-
-REM Method 4: Kill Python processes specifically
-echo Stopping Python processes...
+echo Stopping proxy server...
 taskkill /f /im python.exe >nul 2>&1
-
-REM Method 5: Kill uvicorn/fastapi processes
-echo Stopping web server processes...
-taskkill /f /im uvicorn.exe >nul 2>&1
-
-REM Method 6: Use PowerShell to kill by command line
-echo Using PowerShell to clean up remaining processes...
-powershell -Command "Get-Process | Where-Object {$_.ProcessName -like '*ollama*' -or $_.ProcessName -eq 'python' -or ($_.CommandLine -like '*proxy_server*')} | Stop-Process -Force" >nul 2>&1
-
-REM Method 7: Force kill using wmic
-echo Final cleanup with wmic...
-wmic process where "name like '%%ollama%%'" delete >nul 2>&1
-wmic process where "name='python.exe' and commandline like '%%proxy_server%%'" delete >nul 2>&1
-
-echo.
-echo 🔍 Final verification...
-
-REM Wait a moment for processes to fully terminate
-timeout /t 2 /nobreak >nul
-
-REM Check ports
-netstat -ano | findstr ":11434" >nul 2>&1
 if !errorlevel!==0 (
-    echo ❌ Port 11434 still in use - manual cleanup may be needed
+    echo ✅ Proxy server stopped
 ) else (
-    echo ✅ Port 11434 is free
-)
-
-netstat -ano | findstr ":8000" >nul 2>&1
-if !errorlevel!==0 (
-    echo ❌ Port 8000 still in use - manual cleanup may be needed
-) else (
-    echo ✅ Port 8000 is free
+    echo ⚠️  Proxy server was not running
 )
 
 echo.
-echo ✅ Cleanup completed - all methods attempted
-echo 💡 If connect_to_ollama.bat still works, try running this again
-echo 💡 Or manually run: taskkill /f /im ollama.exe
+echo ✅ All services stopped successfully
 echo 👋 Goodbye!
 echo.
-timeout /t 3 /nobreak >nul
+timeout /t 2 /nobreak >nul
 exit
